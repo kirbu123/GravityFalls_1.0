@@ -5,7 +5,7 @@ import math
 
 WIDTH = 1000
 HEIGHT = 1000
-FPS = 300
+FPS = 30
 # Задаем цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -13,7 +13,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 SPEED = 5
-G = 0.5
+G = 0.001
 
 #загружаем спрайты
 SPRITES = [pygame.image.load('einstein.png')]
@@ -27,7 +27,7 @@ clock = pygame.time.Clock()
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, pos):
         pygame.sprite.Sprite.__init__(self)
         self.spx = 0
         self.spy = 0
@@ -35,48 +35,19 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.Surface((50, 49))
         self.image.fill(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.center = (random.randint(0, WIDTH), random.randint(0, WIDTH))
+        self.rect.center = pos
     def update(self):
-        global SPEED, SPRITES, objects, G
+        global SPRITES
         screen.blit(SPRITES[0], (self.rect.x, self.rect.y))
-        for obj in objects:
-            if not (obj.rect.x == self.rect.x and obj.rect.y == self.rect.y):
-                x = self.rect.x
-                y = self.rect.y
-                x1 = obj.rect.x
-                y1 = obj.rect.y
-                self.spx += G * obj.mass * (x1 - x) / (((x1 - x) ** 2 + (y1 - y) ** 2) ** (3 / 2))
-                self.spy += G * obj.mass * (y1 - y) / (((x1 - x) ** 2 + (y1 - y) ** 2) ** (3 / 2))
-        self.rect.x += self.spx
-        self.rect.y += self.spy
-        if self.rect.x <= 10:
-            self.spx = math.fabs(self.spx)
-        if self.rect.x >= WIDTH:
-            self.spx = -1 * math.fabs(self.spx)
-        if self.rect.y <= 10:
-            self.spy = math.fabs(self.spy)
-        if self.rect.y >= HEIGHT:
-            self.spy = -1 * math.fabs(self.spy)
-
-
-        '''
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.rect.x -= SPEED
-        if keys[pygame.K_RIGHT]:
-            self.rect.x += SPEED
-        if keys[pygame.K_UP]:
-            self.rect.y -= SPEED
-        if keys[pygame.K_DOWN]:
-            self.rect.y += SPEED
-        '''
+        self.rect.center = (self.rect.center[0] + self.spx, self.rect.center[1] + self.spy)
 
 
 all_sprites = pygame.sprite.Group()
 objects = []
 
-for i in range(3):
-    new_player = Player()
+def CREATE_OBJ(pos):
+    global Player, all_sprites, objects
+    new_player = Player(pos)
     all_sprites.add(new_player)
     objects.append(new_player)
 
@@ -85,16 +56,32 @@ running = True
 while running:
     # Держим цикл на правильной скорости
     clock.tick(FPS)
+    for this in objects:
+        x = this.rect.center[0]
+        y = this.rect.center[1]
+        for other in objects:
+            x1 = other.rect.center[0]
+            y1 = other.rect.center[1]
+            if this.rect.center != other.rect.center:
+                this.spx += G * (x1 - x)
+                this.spy += G * (y1 - y)
+        this.rect.center = (x + this.spx, y + this.spy)
+    
+
     # Ввод процесса (события)
     for event in pygame.event.get():
         # check for closing window
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                print(event.pos)
+                CREATE_OBJ(event.pos)
     # Обновление
     screen.fill(BLACK)
     all_sprites.draw(screen)
     all_sprites.update()
     pygame.display.update()
-
+    pygame.display.flip()
 
 pygame.quit()
